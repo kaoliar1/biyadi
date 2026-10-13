@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#0F172A" />
+  <title>比亚迪股票走势分析 · 002594</title>
+  <link rel="stylesheet" href="vendor/tdesign.min.css" />
+  <link rel="stylesheet" href="vendor/reset.css" />
+  <style>
+    :root {
+      --c-primary: #0F172A;
+      --c-secondary: #1E3A8A;
+      --c-accent: #A16207;
+      --c-bg: #F8FAFC;
+      --c-card: #FFFFFF;
+      --c-muted: #475569;
+      --c-border: #E2E8F0;
+      --c-up: #D54941;
+      --c-down: #2BA471;
+      --ma5: #FAAD14;
+      --ma10: #722ED1;
+      --ma20: #1E3A8A;
+      --ma60: #5B6B7B;
+    }
+    * { -webkit-tap-highlight-color: transparent; }
+    html, body {
+      margin: 0; padding: 0;
+      background: var(--c-bg);
+      color: var(--c-primary);
+      font-family: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+      font-size: 14px; line-height: 1.5;
+    }
+    #app { max-width: 480px; margin: 0 auto; min-height: 100vh; background: var(--c-bg);
+           padding-bottom: calc(20px + env(safe-area-inset-bottom)); }
+
+    .card { background: var(--c-card); border-radius: 12px; margin: 12px;
+            border: 1px solid var(--c-border); overflow: hidden; }
+    .card-pad { padding: 14px; }
+    .section-title { font-size: 16px; font-weight: 600; margin: 0 0 10px;
+                     display: flex; align-items: center; gap: 6px; }
+    .section-title .bar { width: 3px; height: 14px; border-radius: 2px; background: var(--c-secondary); }
+    .muted { color: var(--c-muted); font-size: 12px; }
+
+    /* 头部价格卡 */
+    .price-card { background: linear-gradient(135deg, #0F172A 0%, #1E3A8A 100%); color: #fff;
+                  border-radius: 12px; margin: 12px; padding: 16px; }
+    .price-card .pc-top { display: flex; justify-content: space-between; align-items: flex-start; }
+    .price-card .pc-name { font-size: 15px; font-weight: 600; }
+    .price-card .pc-code { font-size: 12px; opacity: .75; margin-top: 2px; }
+    .price-card .pc-price { font-size: 34px; font-weight: 700; letter-spacing: -.5px; margin-top: 10px; }
+    .price-card .pc-sub { font-size: 12px; opacity: .8; margin-top: 4px; }
+    .pc-tag { border-radius: 6px; padding: 3px 8px; font-size: 13px; font-weight: 600; }
+    .tag-down { background: rgba(43,164,113,.18); color: #6EE7B7; }
+    .tag-up { background: rgba(213,73,65,.18); color: #FCA5A5; }
+
+    .metric-grid { display: grid; grid-template-columns: repeat(4, 1fr); margin-top: 14px; }
+    .metric-grid .mg { text-align: center; padding: 6px 2px; }
+    .metric-grid .mg .v { font-size: 15px; font-weight: 600; }
+    .metric-grid .mg .l { font-size: 11px; opacity: .72; margin-top: 2px; }
+
+    /* 图表 */
+    .chart { width: 100%; }
+    .chart-kline { height: 430px; }
+    .chart-half { height: 270px; }
+    .chart-hint { font-size: 12px; color: var(--c-muted); padding: 0 14px 10px; }
+
+    /* 表格 */
+    .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .table-wrap table { width: 100%; border-collapse: collapse; font-size: 12.5px; min-width: 420px; }
+    .table-wrap th, .table-wrap td { padding: 8px 10px; text-align: right; white-space: nowrap;
+                                     border-bottom: 1px solid var(--c-border); }
+    .table-wrap th { background: #F1F5F9; color: var(--c-muted); font-weight: 500; }
+    .table-wrap td:first-child, .table-wrap th:first-child { text-align: left; }
+    .t-up { color: var(--c-up); font-weight: 600; }
+    .t-down { color: var(--c-down); font-weight: 600; }
+
+    /* 时间线 */
+    .steps { padding: 4px 2px; }
+    .step { display: flex; gap: 10px; padding-bottom: 16px; position: relative; }
+    .step::before { content: ""; position: absolute; left: 11px; top: 24px; bottom: 0; width: 1px; background: var(--c-border); }
+    .step:last-child::before { display: none; }
+    .step .dot { width: 24px; height: 24px; border-radius: 50%; flex: none;
+                 background: #E8EEF8; color: var(--c-secondary);
+                 display: flex; align-items: center; justify-content: center; }
+    .step .st-title { font-size: 14px; font-weight: 600; }
+    .step .st-desc { font-size: 12.5px; color: var(--c-muted); margin-top: 2px; }
+    code { background: #F1F5F9; border-radius: 4px; padding: 1px 5px; font-size: 12px; }
+
+    .conclude-line { display: flex; gap: 8px; font-size: 13px; margin-bottom: 10px; align-items: flex-start; }
+    .conclude-line .c-icon { margin-top: 2px; flex: none; }
+    .conclude-line .c-text { flex: 1; }
+    .footer { text-align: center; font-size: 11.5px; color: var(--c-muted); padding: 8px 20px 0; }
+  </style>
+</head>
+<body>
+<div id="app">
+  <t-navbar title="比亚迪股票走势分析" fixed placeholder></t-navbar>
+
+  <template v-if="error">
+    <t-result theme="error" title="数据加载失败" :description="error"></t-result>
+  </template>
+
+  <template v-else-if="d">
+    <!-- 顶部价格卡 -->
+    <div class="price-card">
+      <div class="pc-top">
+        <div>
+          <div class="pc-name">{{ d.meta.name }} <span style="opacity:.7;font-weight:400">{{ d.meta.code }}</span></div>
+          <div class="pc-code">{{ d.meta.market }} · {{ d.meta.adjust }} · {{ d.meta.start }} ~ {{ d.meta.end }}</div>
+        </div>
+        <span class="pc-tag" :class="ov.year_ret >= 0 ? 'tag-up' : 'tag-down'">
+          {{ ov.year_ret >= 0 ? '+' : '' }}{{ ov.year_ret }}%
+        </span>
+      </div>
+      <div class="pc-price">{{ ov.year_close }}</div>
+      <div class="pc-sub">年末收盘价（后复权） · 年初开盘 {{ ov.year_open }}</div>
+      <div class="metric-grid">
+        <div class="mg"><div class="v">{{ ov.year_high }}</div><div class="l">年内最高</div></div>
+        <div class="mg"><div class="v">{{ ov.year_low }}</div><div class="l">年内最低</div></div>
+        <div class="mg"><div class="v">{{ ov.ann_vol }}%</div><div class="l">年化波动率</div></div>
+        <div class="mg"><div class="v" style="color:#FCA5A5">{{ ov.max_dd }}%</div><div class="l">最大回撤</div></div>
+        <div class="mg"><div class="v" style="color:#FCA5A5">{{ ov.up_days }}</div><div class="l">上涨天数</div></div>
+        <div class="mg"><div class="v" style="color:#6EE7B7">{{ ov.down_days }}</div><div class="l">下跌天数</div></div>
+        <div class="mg"><div class="v">{{ ov.avg_amount }}</div><div class="l">日均成交额(亿)</div></div>
+        <div class="mg"><div class="v">{{ ov.avg_turnover }}%</div><div class="l">日均换手率</div></div>
+      </div>
+    </div>
+
+    <div>
+      <t-notice-bar
+        theme="warning"
+        content="课程教学练习：数据为2023年共242个交易日后复权日线，红涨绿跌，分析结果不构成投资建议。"
+        :visible="true" />
+    </div>
+
+    <!-- 主体 Tabs -->
+    <div>
+    <t-tabs v-model="tab" @change="onTabChange">
+      <t-tab-panel value="kline" label="行情走势">
+        <div class="card">
+          <div class="card-pad" style="padding-bottom:0">
+            <div class="section-title"><span class="bar"></span>K线图 · 移动平均线 · 成交量</div>
+          </div>
+          <div ref="klineEl" class="chart chart-kline"></div>
+          <div class="chart-hint">提示：单指拖动或滑动缩放区间；点击图例可切换均线显示。</div>
+        </div>
+      </t-tab-panel>
+
+      <t-tab-panel value="stats" label="描述统计">
+        <div class="card">
+          <div class="card-pad">
+            <div class="section-title"><span class="bar"></span>价格描述性统计（后复权）</div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>指标</th><th>均值</th><th>标准差</th><th>最小</th><th>25%</th><th>中位</th><th>75%</th><th>最大</th><th>偏度</th></tr></thead>
+                <tbody>
+                  <tr v-for="r in priceRows" :key="r.n">
+                    <td>{{ r.n }}</td><td>{{ r.mean }}</td><td>{{ r.std }}</td>
+                    <td>{{ r.min }}</td><td>{{ r.q25 }}</td><td>{{ r.median }}</td>
+                    <td>{{ r.q75 }}</td><td>{{ r.max }}</td><td>{{ r.skew }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-pad">
+            <div class="section-title"><span class="bar"></span>交易与波动描述性统计</div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>指标</th><th>均值</th><th>标准差</th><th>最小</th><th>中位</th><th>最大</th><th>偏度</th></tr></thead>
+                <tbody>
+                  <tr v-for="r in tradeRows" :key="r.n">
+                    <td>{{ r.n }}</td><td>{{ r.mean }}</td><td>{{ r.std }}</td>
+                    <td>{{ r.min }}</td><td>{{ r.median }}</td><td>{{ r.max }}</td><td>{{ r.skew }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-pad">
+            <div class="section-title"><span class="bar"></span>关键指标</div>
+            <t-cell-group>
+              <t-cell title="最大单日涨幅" :note="'+' + ov.max_up + '%'"></t-cell>
+              <t-cell title="最大单日跌幅" :note="ov.max_down + '%'"></t-cell>
+              <t-cell title="最大回撤" :note="ov.max_dd + '%（' + ov.max_dd_date + '）'"></t-cell>
+              <t-cell title="成交量峰值日" :note="ov.vol_peak.date + '，' + ov.vol_peak.amount + '亿元'"></t-cell>
+              <t-cell title="收盘价-成交量相关系数" :note="String(ov.corr_close_volume)"></t-cell>
+            </t-cell-group>
+          </div>
+        </div>
+      </t-tab-panel>
+
+      <t-tab-panel value="dist" label="收益分布">
+        <div class="card">
+          <div class="card-pad" style="padding-bottom:0">
+            <div class="section-title"><span class="bar"></span>日涨跌幅分布（天）</div>
+          </div>
+          <div ref="distEl" class="chart chart-half"></div>
+        </div>
+        <div class="card">
+          <div class="card-pad" style="padding-bottom:0">
+            <div class="section-title"><span class="bar"></span>月度收益率（%）</div>
+          </div>
+          <div ref="monthEl" class="chart chart-half"></div>
+        </div>
+      </t-tab-panel>
+
+      <t-tab-panel value="process" label="分析过程">
+        <div class="card">
+          <div class="card-pad">
+            <div class="section-title"><span class="bar"></span>分析流程（教材4.1–4.3）</div>
+            <div class="steps">
+              <div class="step" v-for="s in steps" :key="s.t">
+                <div class="dot"><t-icon :name="s.i" size="14px" /></div>
+                <div>
+                  <div class="st-title">{{ s.t }}</div>
+                  <div class="st-desc" v-html="s.d"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-pad">
+            <div class="section-title"><span class="bar"></span>分析结论</div>
+            <div class="conclude-line" v-for="c in conclusions" :key="c">
+              <div class="c-icon"><t-icon name="check-circle-filled" size="15px" color="#1E3A8A" /></div>
+              <div class="c-text" v-html="c"></div>
+            </div>
+          </div>
+        </div>
+      </t-tab-panel>
+    </t-tabs>
+    </div>
+
+    <t-divider align="center">数据来源：课程配套行情数据（后复权）</t-divider>
+    <div class="footer">
+      本页面为《金融大数据分析与应用》第4章 P92 实战演练成果<br />
+      技术栈：pandas · ECharts 5 · TDesign Mobile Vue · Vue 3<br />
+      仅供教学使用，不构成任何投资建议
+    </div>
+  </template>
+
+  <template v-else>
+    <div style="padding:24px"><t-skeleton row="8" :loading="true" animate></t-skeleton></div>
+  </template>
+</div>
+
+<script src="vendor/vue.global.prod.js"></script>
+<script src="vendor/echarts.min.js"></script>
+<script src="vendor/t-icons.js"></script>
+<script src="vendor/tdesign.min.js"></script>
+<script>
+const { createApp } = Vue;
+const UP = "#D54941", DOWN = "#2BA471";
+
+createApp({
+  data() {
+    return { d: null, error: "", tab: "kline", inited: {}, charts: {} };
+  },
+  computed: {
+    ov() { return this.d.overview; },
+    priceRows() {
+      const names = { open: "开盘价", close: "收盘价", high: "最高价", low: "最低价" };
+      return ["open", "close", "high", "low"].map(k => ({ n: names[k], ...this.d.stats[k] }));
+    },
+    tradeRows() {
+      const names = { volume: "成交量(手)", amplitude: "振幅(%)", pct_chg: "涨跌幅(%)", turnover: "换手率(%)" };
+      return ["volume", "amplitude", "pct_chg", "turnover"].map(k => ({ n: names[k], ...this.d.stats[k] }));
+    },
+    steps() {
+      return [
+        { i: "cloud-download", t: "步骤1 数据读取与预处理",
+          d: "pandas 读取 xlsx，<code>日期</code> 转为 datetime 并按时间排序，共 242 个交易日。" },
+        { i: "chart-bar", t: "步骤2 描述性统计",
+          d: "计算开/收/高/低、成交量、涨跌幅等的均值、标准差、分位数、偏度、峰度（教材4.1）。" },
+        { i: "trending-up", t: "步骤3 移动平均线",
+          d: "按收盘价计算简单移动平均线 MA5 / MA10 / MA20 / MA60（教材4.3.2）。" },
+        { i: "chart-analytics", t: "步骤4 风险与收益指标",
+          d: "计算日涨跌幅分布、年化波动率、最大回撤、月度收益与量价相关系数。" },
+        { i: "mobile", t: "步骤5 移动端可视化",
+          d: "ECharts 绘制 K线+均线+成交量联动图，TDesign 控件组织页面，输出静态 H5。" },
+      ];
+    },
+    conclusions() {
+      return [
+        "全年走势：后复权收盘价由 <b>257.66</b> 跌至 <b>200.40</b>，年度涨跌幅 <b class='t-down'>-22.22%</b>；最大回撤 <b class='t-down'>-38.71%</b>（2023-12-20）。",
+        "波动特征：年化波动率 <b>26.96%</b>；140 个交易日下跌、102 日上涨；单日最大涨/跌幅为 +6.46% / -5.18%。",
+        "量价关系：收盘价与成交量相关系数仅 <b>0.078</b>，基本无线性相关；成交量峰值出现在 2023-10-18（成交额 76.46 亿元）。",
+        "月度特征：1 月最强（+11.41%），11 月最弱（-16.16%）；全年仅 5 个月收阳。",
+        "分布形态：收盘价偏度为负（-0.921），分布左偏，高价位交易日更多分布在上半年。",
+      ];
+    },
+  },
+  async mounted() {
+    try {
+      const r = await fetch("data/byd_data.json");
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      this.d = await r.json();
+      this.$nextTick(() => this.initKline());
+    } catch (e) {
+      this.error = e.message;
+    }
+    window.addEventListener("resize", () => {
+      Object.values(this.charts).forEach(c => c && c.resize());
+    });
+  },
+  methods: {
+    onTabChange(v) {
+      this.$nextTick(() => {
+        if (v === "kline") this.initKline();
+        if (v === "dist") { this.initDist(); this.initMonth(); }
+        Object.values(this.charts).forEach(c => c && c.resize());
+      });
+    },
+    initKline() {
+      if (this.inited.kline) return;
+      const el = this.$refs.klineEl;
+      if (!el) return;
+      const k = this.d.kline;
+      const dates = k.map(r => r[0]);
+      const ohlc = k.map(r => [r[1], r[2], r[4], r[3]]);
+      const vol = k.map(r => ({
+        value: r[5],
+        itemStyle: { color: r[2] >= r[1] ? "rgba(213,73,65,.75)" : "rgba(43,164,113,.75)" },
+      }));
+      const maColor = { ma5: "#FAAD14", ma10: "#722ED1", ma20: "#1E3A8A", ma60: "#5B6B7B" };
+      const maSeries = Object.keys(maColor).map(key => {
+        const m = {};
+        this.d.ma[key].forEach(x => { m[x[0]] = x[1]; });
+        return {
+          name: key.toUpperCase(), type: "line", smooth: true, symbol: "none",
+          data: dates.map(d => (m[d] == null ? "-" : m[d])),
+          lineStyle: { width: 1, color: maColor[key] },
+        };
+      });
+      const chart = echarts.init(el);
+      chart.setOption({
+        animation: false,
+        legend: { top: 4, textStyle: { fontSize: 11 }, itemWidth: 14, itemHeight: 8,
+                  data: ["K线", "MA5", "MA10", "MA20", "MA60"] },
+        tooltip: {
+          trigger: "axis", axisPointer: { type: "cross" },
+          formatter: (ps) => {
+            const i = ps[0].dataIndex, r = k[i];
+            const chg = ((r[2] - r[1]) / r[1] * 100).toFixed(2);
+            let h = r[0] + "<br/>开 " + r[1] + " 收 " + r[2] + "<br/>低 " + r[3] + " 高 " + r[4];
+            h += "<br/>涨跌 " + "<span style='color:" + (chg >= 0 ? UP : DOWN) + "'>" + (chg >= 0 ? "+" : "") + chg + "%</span>";
+            h += "<br/>量 " + (r[5] / 10000).toFixed(1) + " 万手";
+            ps.forEach(p => {
+              if (p.seriesName && p.seriesName.startsWith("MA") && p.value !== "-" && p.value != null) {
+                h += "<br/>" + p.seriesName + " " + (typeof p.value === "number" ? p.value.toFixed(2) : p.value);
+              }
+            });
+            return h;
+          },
+        },
+        axisPointer: { link: [{ xAxisIndex: "all" }] },
+        grid: [
+          { left: 50, right: 12, top: 36, height: "50%" },
+          { left: 50, right: 12, top: "68%", height: "18%" },
+        ],
+        xAxis: [
+          { type: "category", data: dates, scale: true, boundaryGap: false,
+            axisLine: { onZero: false }, splitLine: { show: false },
+            axisLabel: { fontSize: 10 }, min: "dataMin", max: "dataMax" },
+          { type: "category", gridIndex: 1, data: dates, scale: true, boundaryGap: false,
+            axisLine: { onZero: false }, axisLabel: { show: false }, min: "dataMin", max: "dataMax" },
+        ],
+        yAxis: [
+          { scale: true, splitLine: { lineStyle: { color: "#F1F5F9" } }, axisLabel: { fontSize: 10 } },
+          { gridIndex: 1, splitNumber: 2, axisLabel: {
+              fontSize: 10, formatter: v => (v / 10000).toFixed(0) + "万" } },
+        ],
+        dataZoom: [
+          { type: "inside", xAxisIndex: [0, 1], start: 45, end: 100 },
+          { type: "slider", xAxisIndex: [0, 1], top: "90%", height: 18,
+            start: 45, end: 100, borderColor: "#E2E8F0", fillerColor: "rgba(30,58,138,.12)",
+            handleStyle: { color: "#1E3A8A" }, textStyle: { fontSize: 9 },
+            dataBackground: {
+              lineStyle: { color: "#94A3B8", width: 1 },
+              areaStyle: { color: "#CBD5E1", opacity: 0.5 },
+            } },
+        ],
+        series: [
+          { name: "K线", type: "candlestick", data: ohlc,
+            itemStyle: { color: UP, color0: DOWN, borderColor: UP, borderColor0: DOWN } },
+          ...maSeries,
+          { name: "成交量", type: "bar", xAxisIndex: 1, yAxisIndex: 1,
+            data: vol, barWidth: "62%" },
+        ],
+      });
+      this.charts.kline = chart;
+      this.inited.kline = true;
+    },
+    initDist() {
+      if (this.inited.dist) return;
+      const el = this.$refs.distEl;
+      if (!el) return;
+      const data = this.d.ret_dist;
+      const chart = echarts.init(el);
+      chart.setOption({
+        animation: false,
+        tooltip: { trigger: "axis", formatter: p => p[0].name + "：" + p[0].value + " 天" },
+        grid: { left: 36, right: 14, top: 18, bottom: 28 },
+        xAxis: { type: "category", data: data.map(d => d.label),
+                 axisLabel: { fontSize: 9, interval: 0 } },
+        yAxis: { type: "value", axisLabel: { fontSize: 10 }, splitLine: { lineStyle: { color: "#F1F5F9" } } },
+        series: [{
+          type: "bar", barWidth: "58%",
+          data: data.map((d, i) => ({
+            value: d.value,
+            itemStyle: { color: i < 4 ? "rgba(43,164,113,.8)" : "rgba(213,73,65,.8)",
+                         borderRadius: [3, 3, 0, 0] },
+          })),
+          label: { show: true, position: "top", fontSize: 10 },
+        }],
+      });
+      this.charts.dist = chart;
+      this.inited.dist = true;
+    },
+    initMonth() {
+      if (this.inited.month) return;
+      const el = this.$refs.monthEl;
+      if (!el) return;
+      const data = this.d.monthly;
+      const chart = echarts.init(el);
+      chart.setOption({
+        animation: false,
+        tooltip: { trigger: "axis", formatter: p => p[0].name + "：" + p[0].value + "%" },
+        grid: { left: 36, right: 14, top: 18, bottom: 28 },
+        xAxis: { type: "category", data: data.map(d => d.month.slice(5) + "月"),
+                 axisLabel: { fontSize: 10 } },
+        yAxis: { type: "value", axisLabel: { fontSize: 10, formatter: "{value}%" },
+                 splitLine: { lineStyle: { color: "#F1F5F9" } } },
+        series: [{
+          type: "bar", barWidth: "55%",
+          data: data.map(d => ({
+            value: d.ret,
+            label: { show: true, position: d.ret >= 0 ? "top" : "bottom", fontSize: 9 },
+            itemStyle: { color: d.ret >= 0 ? "rgba(213,73,65,.82)" : "rgba(43,164,113,.82)",
+                         borderRadius: d.ret >= 0 ? [3, 3, 0, 0] : [0, 0, 3, 3] },
+          })),
+          label: { show: true, position: "top", fontSize: 9 },
+        }],
+      });
+      this.charts.month = chart;
+      this.inited.month = true;
+    },
+  },
+}).use(TDesign).mount("#app");
+</script>
+</body>
+</html>
